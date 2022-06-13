@@ -34,7 +34,6 @@ public class RedPacketController {
      */
     @RequestMapping(value = prefix+"/hand/out",method = RequestMethod.POST,consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public BaseResponse handOut(@Validated @RequestBody RedPacketDto dto, BindingResult result){
-        System.out.println("-----------------------sdlfkjdsfkmmmhw");
        if (result.hasErrors()){
            return new BaseResponse(StatusCode.InvalidParams);
        }
