@@ -12,7 +12,7 @@
     <artifactId>api</artifactId>
 
     <properties>
-        <lombok.version>1.16.18</lombok.version>
+        <lombok.version>1.18.10</lombok.version>
         <jackson-annotations-version>2.9.0</jackson-annotations-version>
     </properties>
 

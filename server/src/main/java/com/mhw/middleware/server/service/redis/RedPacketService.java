@@ -13,7 +13,10 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -85,10 +88,9 @@ public class RedPacketService implements IRedPacketService {
             //上锁:一个红包每个人只能抢一次随机金额；一个人每次只能抢到红包的一次随机金额  即要永远保证 1对1 的关系
             final String lockKey=redId+userId+"-lock";
             Boolean lock=valueOperations.setIfAbsent(lockKey,redId);
-            redisTemplate.expire(lockKey,24L,TimeUnit.HOURS);
-            try {
-                if (lock) {
-
+            if (lock) {
+                redisTemplate.expire(lockKey,24L,TimeUnit.HOURS);
+                try {
                     //"抢红包"-且红包有钱
                     Object value=redisTemplate.opsForList().rightPop(redId);
                     if (value!=null){
@@ -98,21 +100,28 @@ public class RedPacketService implements IRedPacketService {
                         Integer currTotal=valueOperations.get(redTotalKey)!=null? (Integer) valueOperations.get(redTotalKey) : 0;
                         valueOperations.set(redTotalKey,currTotal-1);
 
-
                         //将红包金额返回给用户的同时，将抢红包记录入数据库与缓存
                         BigDecimal result = new BigDecimal(value.toString()).divide(new BigDecimal(100));
                         redService.recordRobRedPacket(userId,redId,new BigDecimal(value.toString()));
 
                         valueOperations.set(redId+userId+":rob",result,24L,TimeUnit.HOURS);
 
-                        log.info("当前用户抢到红包了：userId={} key={} 金额={} ",userId,redId,result);
+                        log.info("当前用户抢到红包了{} key={} 金额={}",userId,redId,result);
                         return result;
+                    }else{
+                        log.info("当前用户没有抢到红包1：{}",userId);
                     }
-
+                }catch (Exception e){
+                    throw new Exception("系统异常-抢红包-加分布式锁失败!");
+                }finally{
+                    redisTemplate.delete(lockKey);
                 }
-            }catch (Exception e){
-                throw new Exception("系统异常-抢红包-加分布式锁失败!");
+            }else{
+                log.info("当前用户没有抢到红包2：{}",userId);
             }
+        }else{
+            log.info("当前用户没有抢到红包3：{}",userId);
+            System.out.println("----------该用户没有倒红包"+userId);
         }
         return null;
     }
